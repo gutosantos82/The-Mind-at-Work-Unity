@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -8,6 +8,7 @@ public class Player : MonoBehaviour
 {
     public Camera mainCamera;
     public Transform CasulaObject;
+    public Transform IronMesh;
     private bool WiresVisible;
     private bool SpeakersVisible;
     private bool UnitsVisible;
@@ -45,7 +46,7 @@ public class Player : MonoBehaviour
     private Color previousColor;
     private Transform[] lastLEDs;
 
-    private Dictionary<string, Vector3> originalPositions = new Dictionary<string, Vector3>();
+    private Dictionary<int, Vector3> originalPositions = new Dictionary<int, Vector3>();
 
     private bool isPingPongOn;
     private IEnumerator coroutinePingPong;
@@ -60,11 +61,11 @@ public class Player : MonoBehaviour
         SpeakersVisible = true;
         UnitsVisible = true;
         LEDsVisible = true;
-        distanceToTarget = 1000;
+        distanceToTarget = 700;
         greatestDistanceFromCentre = 0;
         scale = 5f;
         speed = 50.0f;
-        yCorrection = 400;
+        yCorrection = 200;
         cameraQReset = mainCamera.transform.rotation;
 
         ResetCamera();
@@ -108,14 +109,14 @@ public class Player : MonoBehaviour
     private void ComputeGreatestDistanceFromCentre(GameObject g, Vector3 c)
     {
 
-        if(g.transform.name.Contains("LU") || g.transform.name.Contains("LD"))
+        if(g.transform.name.Contains("LU") || g.transform.name.Contains("LD") || g.transform.name.Contains("LED"))
             countLEDs++;
 
-        if (g.transform.name.Contains("PI_units"))
+        if (g.transform.name.Contains("PI_units") || g.transform.name.Contains("PI"))
             countPIs++;
 
         if (g.transform.name.Contains("Speakers") || g.transform.name.Contains("speakers")
-        || g.transform.name.Contains("SU") || g.transform.name.Contains("SD"))
+        || g.transform.name.Contains("SU") || g.transform.name.Contains("SD") || g.transform.name.Contains("Speaker"))
             countSpeakers++;
 
         float distance = Vector3.Distance(g.transform.position, c);
@@ -131,7 +132,7 @@ public class Player : MonoBehaviour
     {
         try
         {
-            originalPositions.Add(g.transform.name, g.transform.position);
+            originalPositions.Add(g.transform.GetInstanceID(), g.transform.position);
         }
         catch (ArgumentException)
         {
@@ -139,7 +140,7 @@ public class Player : MonoBehaviour
         }
 
 
-        if (g.transform.name.Contains("LU") || g.transform.name.Contains("LD"))
+        if (g.transform.name.Contains("LU") || g.transform.name.Contains("LD") || g.transform.name.Contains("LED"))
         {
             if (g.transform.position.x > maxValue.x) maxValue.x = g.transform.position.x;
             if (g.transform.position.y > maxValue.y) maxValue.y = g.transform.position.y;
@@ -197,7 +198,7 @@ public class Player : MonoBehaviour
 
     private void FlashLEDs(Transform t, Color c)
     {
-        if(t.name.Contains("LU") || t.name.Contains("LD"))
+        if(t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             t.gameObject.GetComponent<Renderer>().material.color = c;
         }
@@ -237,7 +238,7 @@ public class Player : MonoBehaviour
 
     private void TurnOnLEDsBasedOnX(Transform t, Color c, float x)
     {
-        if (t.name.Contains("LU") || t.name.Contains("LD"))
+        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             if (Math.Abs(t.position.x - x) < 10)
                 t.gameObject.GetComponent<Renderer>().material.color = c;
@@ -280,7 +281,7 @@ public class Player : MonoBehaviour
 
     private void TurnOnLEDsBasedOnDistance(Transform t, Color c, Vector3 v, int d)
     {
-        if (t.name.Contains("LU") || t.name.Contains("LD"))
+        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             if(Vector3.Distance(t.position, v) < d)
                 t.gameObject.GetComponent<Renderer>().material.color = c;
@@ -349,7 +350,7 @@ public class Player : MonoBehaviour
 
     private void CheckClosestLED(Transform t, Vector3 v)
     {
-        if (t.name.Contains("LU") || t.name.Contains("LD"))
+        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             bool isPreviousLED = false;
             for(int i = 0; i < lastLEDs.Length; i++)
@@ -410,25 +411,26 @@ public class Player : MonoBehaviour
     public void DisableWires()
     {
         WiresVisible = !WiresVisible;
-        HideObjectByName(CasulaObject, new string[] { "Wires", "wire" }, WiresVisible);   
+        HideObjectByName(CasulaObject, new string[] { "Wires", "wire", "Wire" }, WiresVisible);   
     }
 
     public void DisableLEDs()
     {
         LEDsVisible = !LEDsVisible;
-        HideObjectByName(CasulaObject, new string[] { "LU", "LD"}, LEDsVisible);
+        HideObjectByName(CasulaObject, new string[] { "LU", "LD", "LED"}, LEDsVisible);
     }
 
     public void DisableUnits()
     {
         UnitsVisible = !UnitsVisible;
-        HideObjectByName(CasulaObject, new string[] { "PI_units"}, UnitsVisible);
+        HideObjectByName(CasulaObject, new string[] { "PI_units", "PI", "Acrylic" }, UnitsVisible);
+        HideObjectByName(IronMesh, new string[] { "horiz", "vert" }, UnitsVisible);
     }
 
     public void DisableSpeakers()
     {
         SpeakersVisible = !SpeakersVisible;
-        HideObjectByName(CasulaObject, new string[] { "Speakers", "speakers", "SU", "SD"  }, SpeakersVisible);
+        HideObjectByName(CasulaObject, new string[] { "Speakers", "speakers", "SU", "SD", "Speaker"  }, SpeakersVisible);
     }
 
     public void ResetCamera()
@@ -446,14 +448,14 @@ public class Player : MonoBehaviour
 
     private void RandomizeObjectPositions(GameObject g)
     {
-        String[] names = new string[] { "Speakers", "speakers", "SU", "SD", "LU", "LD" };
+        String[] names = new string[] { "Speakers", "speakers", "SU", "SD", "LU", "LD", "LED", "Speaker" };
         foreach (string name in names)
         {
             //Debug.Log("Does " + t.name + " contains " + name + "?");
             if (g.transform.name.Contains(name))
             {
                 float maxRandom = 30f;
-                Vector3 newPosition = originalPositions[g.transform.name];
+                Vector3 newPosition = originalPositions[g.transform.GetInstanceID()];
                 //newPosition.x = newPosition.x + UnityEngine.Random.Range(-maxRandom, maxRandom);
                 newPosition.y = newPosition.y + UnityEngine.Random.Range(-maxRandom, maxRandom);
                 //newPosition.z = newPosition.z + UnityEngine.Random.Range(-maxRandom, maxRandom);
@@ -474,7 +476,7 @@ public class Player : MonoBehaviour
 
     private void ResetObjectPositions(GameObject g)
     {
-        g.transform.position = originalPositions[g.transform.name];
+        g.transform.position = originalPositions[g.transform.GetInstanceID()];
 
         foreach (Transform child in g.transform)
         {
