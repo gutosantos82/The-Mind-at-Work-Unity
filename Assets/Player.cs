@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
+using System.IO;
 
 public class Player : MonoBehaviour
 {
     public Camera mainCamera;
     public Transform CasulaObject;
     public Transform IronMesh;
+    public Transform WireSample;
+
     private bool WiresVisible;
     private bool SpeakersVisible;
     private bool UnitsVisible;
@@ -54,6 +57,10 @@ public class Player : MonoBehaviour
     private int countPIs = 0;
     private int countSpeakers = 0;
     private int countLEDs = 0;
+
+    private Dictionary<int, Transform> acrylicPlates = new Dictionary<int, Transform>();
+    private Dictionary<int, Transform> PIs = new Dictionary<int, Transform>();
+    private StreamWriter sw;
 
     public void Awake()
     {
@@ -101,6 +108,11 @@ public class Player : MonoBehaviour
         ComputeGreatestDistanceFromCentre(CasulaObject.gameObject, centralPoint);
         Debug.Log("countPIs:" + countPIs + "\tcountLEDs:" + countLEDs + "\tcountSpeakers:" + countSpeakers);
 
+        File.WriteAllText("cable_lengths.csv", "PParent,Parent,ObjectName,dist-X,dist-Y,Z\n");
+        sw = File.AppendText("cable_lengths.csv");
+        ComputeCableLength(CasulaObject);
+        sw.Close();
+
         DisableUnits();
         DisableWires();
         DisableSpeakers();
@@ -140,6 +152,16 @@ public class Player : MonoBehaviour
         }
 
 
+        if (g.transform.name.Contains("Plate"))
+        {
+            acrylicPlates.Add(g.transform.parent.GetInstanceID(), g.transform);
+        }
+        if (g.transform.name.Contains("PI"))
+        {
+            PIs.Add(g.transform.parent.GetInstanceID(), g.transform);
+        }
+
+
         if (g.transform.name.Contains("LU") || g.transform.name.Contains("LD") || g.transform.name.Contains("LED"))
         {
             if (g.transform.position.x > maxValue.x) maxValue.x = g.transform.position.x;
@@ -154,6 +176,47 @@ public class Player : MonoBehaviour
         foreach (Transform child in g.transform)
         {
             ComputeObjectPosition(child.gameObject);
+        }
+    }
+
+    private void ComputeCableLength(Transform t)
+    {
+
+        if(t.name.Contains("LED") || t.name.Contains("Speaker"))
+        {
+            Vector3 acrylicPlatePosition = acrylicPlates[t.parent.GetInstanceID()].position;
+
+            sw.WriteLine(t.parent.parent.name + "," + t.parent.name + "," + t.name
+                + "," + (acrylicPlatePosition.x - t.position.x)
+                + "," + (acrylicPlatePosition.y - t.position.y)
+                + "," + (acrylicPlatePosition.z - t.position.z)
+                );
+
+            GameObject newWire = Instantiate(WireSample.gameObject);
+            newWire.transform.SetParent(t.parent);
+            //Vector3 wirePos = newWire.transform.position;
+            Vector3 newWirePos = new Vector3(1f, 1f, 1f);
+            newWirePos.x = t.position.x;
+            newWirePos.z = t.position.z;
+            //newWirePos.y = -(acrylicPlatePosition.y -(t.position.y+5))/2;
+            newWire.transform.position = newWirePos;
+
+
+            Vector3 localNewWirePos = newWire.transform.localPosition;
+            localNewWirePos.y = -(acrylicPlates[t.parent.GetInstanceID()].localPosition.y - (t.localPosition.y+5))/2;
+            newWire.transform.localPosition = localNewWirePos;
+
+
+            Vector3 newScale = new Vector3(0.4f, 0.4f, 0.4f);
+            newScale.y = Math.Abs(acrylicPlatePosition.y - (t.position.y + 5));
+            newWire.transform.localScale = newScale;
+
+
+        }
+
+        foreach (Transform child in t)
+        {
+            ComputeCableLength(child);
         }
     }
 
