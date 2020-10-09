@@ -11,6 +11,7 @@ public class Player : MonoBehaviour
     public Transform CasulaObject;
     public Transform IronMesh;
     public Transform WireSample;
+    public OSC osc;
 
     private bool WiresVisible;
     private bool SpeakersVisible;
@@ -28,6 +29,7 @@ public class Player : MonoBehaviour
     private float yCorrection;
     private Vector3 maxValue;
     private Vector3 minValue;
+    private Vector3 boxSize;
     private Vector3 centralPoint;
     private Quaternion cameraQReset;
 
@@ -62,8 +64,12 @@ public class Player : MonoBehaviour
     private Dictionary<int, Transform> PIs = new Dictionary<int, Transform>();
     private StreamWriter sw;
 
+    private Dictionary<int, Boid> Boids = new Dictionary<int, Boid>();
+
     public void Awake()
     {
+        osc.SetAddressHandler("/modelState", OnReceiveModelState);
+
         WiresVisible = true;
         SpeakersVisible = true;
         UnitsVisible = true;
@@ -90,7 +96,7 @@ public class Player : MonoBehaviour
         isSnakeOn = false;
         lastLEDs = new Transform[10];
         closestLEDs = new Transform[3];
-        closestLEDsDistances = new float[3]{ 99999, 99999, 99999};
+        closestLEDsDistances = new float[3] { 99999, 99999, 99999 };
         closestLEDindex = 0;
 
         coroutinePingPong = PingPong();
@@ -99,7 +105,10 @@ public class Player : MonoBehaviour
         maxValue = new Vector3(-9999, -9999, -9999);
         minValue = new Vector3(9999, 9999, 9999);
         ComputeObjectPosition(CasulaObject.gameObject);
-        //Debug.Log("maxValue:" + maxValue + "\tminValue:" + minValue);
+        Debug.Log("maxValue:" + maxValue + "\tminValue:" + minValue);
+        boxSize = maxValue - minValue;
+        Debug.Log("boxSize:" + boxSize);
+
         centralPoint = new Vector3(
             minValue.x + (maxValue.x - minValue.x) / 2,
             minValue.y + (maxValue.y - minValue.y) / 2,
@@ -113,6 +122,13 @@ public class Player : MonoBehaviour
         ComputeCableLength(CasulaObject);
         sw.Close();
 
+        File.WriteAllText("hardware_setup_xyz.csv", "PParent,Parent,ObjectName,x,y,z\n");
+        sw = File.AppendText("hardware_setup_xyz.csv");
+        CreateCSVwithPositions(CasulaObject);
+        sw.Close();
+
+        CreateWires(CasulaObject);
+
         DisableUnits();
         DisableWires();
         DisableSpeakers();
@@ -121,7 +137,7 @@ public class Player : MonoBehaviour
     private void ComputeGreatestDistanceFromCentre(GameObject g, Vector3 c)
     {
 
-        if(g.transform.name.Contains("LU") || g.transform.name.Contains("LD") || g.transform.name.Contains("LED"))
+        if (g.transform.name.Contains("LU") || g.transform.name.Contains("LD") || g.transform.name.Contains("LED"))
             countLEDs++;
 
         if (g.transform.name.Contains("PI_units") || g.transform.name.Contains("PI"))
@@ -179,18 +195,12 @@ public class Player : MonoBehaviour
         }
     }
 
-    private void ComputeCableLength(Transform t)
+    private void CreateWires(Transform t)
     {
 
-        if(t.name.Contains("LED") || t.name.Contains("Speaker"))
+        if (t.name.Contains("LED") || t.name.Contains("Speaker"))
         {
             Vector3 acrylicPlatePosition = acrylicPlates[t.parent.GetInstanceID()].position;
-
-            sw.WriteLine(t.parent.parent.name + "," + t.parent.name + "," + t.name
-                + "," + (acrylicPlatePosition.x - t.position.x)
-                + "," + (acrylicPlatePosition.y - t.position.y)
-                + "," + (acrylicPlatePosition.z - t.position.z)
-                );
 
             GameObject newWire = Instantiate(WireSample.gameObject);
             newWire.transform.SetParent(t.parent);
@@ -203,7 +213,7 @@ public class Player : MonoBehaviour
 
 
             Vector3 localNewWirePos = newWire.transform.localPosition;
-            localNewWirePos.y = -(acrylicPlates[t.parent.GetInstanceID()].localPosition.y - (t.localPosition.y+5))/2;
+            localNewWirePos.y = -(acrylicPlates[t.parent.GetInstanceID()].localPosition.y - (t.localPosition.y + 5)) / 2;
             newWire.transform.localPosition = localNewWirePos;
 
 
@@ -216,7 +226,46 @@ public class Player : MonoBehaviour
 
         foreach (Transform child in t)
         {
+            CreateWires(child);
+        }
+    }
+
+    private void ComputeCableLength(Transform t)
+    {
+
+        if (t.name.Contains("LED") || t.name.Contains("Speaker"))
+        {
+            Vector3 acrylicPlatePosition = acrylicPlates[t.parent.GetInstanceID()].position;
+
+            sw.WriteLine(t.parent.parent.name + "," + t.parent.name + "," + t.name
+                + "," + (acrylicPlatePosition.x - t.position.x)
+                + "," + (acrylicPlatePosition.y - t.position.y)
+                + "," + (acrylicPlatePosition.z - t.position.z)
+                );
+        }
+
+        foreach (Transform child in t)
+        {
             ComputeCableLength(child);
+        }
+    }
+
+    private void CreateCSVwithPositions(Transform t)
+    {
+
+        if (t.name.Contains("LED") || t.name.Contains("Speaker"))
+        {
+            Vector3 computedPosition = t.position - minValue;
+            sw.WriteLine(t.parent.parent.name + "," + t.parent.name + "," + t.name
+                + "," + computedPosition.x
+                + "," + computedPosition.y
+                + "," + computedPosition.z
+                );
+        }
+
+        foreach (Transform child in t)
+        {
+            CreateCSVwithPositions(child);
         }
     }
 
@@ -239,19 +288,19 @@ public class Player : MonoBehaviour
     {
         WiresVisible = !WiresVisible;
         Debug.Log("It Disable Wires!");
-        HideObjectByName(CasulaObject, new string[] {"Wires","wire"}, WiresVisible);
+        HideObjectByName(CasulaObject, new string[] { "Wires", "wire" }, WiresVisible);
     }
 
     public void OnOffXmas()
     {
-        if(isXmasOn) StopCoroutine(coroutineXmas);
-        else StartCoroutine(coroutineXmas); 
+        if (isXmasOn) StopCoroutine(coroutineXmas);
+        else StartCoroutine(coroutineXmas);
         isXmasOn = !isXmasOn;
     }
 
     IEnumerator Xmas()
     {
-        for (;;)
+        for (; ; )
         {
             Color c = ColorHSV.GetRandomColor(UnityEngine.Random.Range(0.0f, 360f), 1, 1);
             FlashLEDs(CasulaObject, c);
@@ -261,7 +310,7 @@ public class Player : MonoBehaviour
 
     private void FlashLEDs(Transform t, Color c)
     {
-        if(t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
+        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             t.gameObject.GetComponent<Renderer>().material.color = c;
         }
@@ -328,8 +377,8 @@ public class Player : MonoBehaviour
         Color c = ColorHSV.GetRandomColor(UnityEngine.Random.Range(0.0f, 360f), 1, 1);
         //Color c = new Color(UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f));
         Vector3 startingPoint = new Vector3(
-            UnityEngine.Random.Range(minValue.x, maxValue.x), 
-            UnityEngine.Random.Range(minValue.y, maxValue.y), 
+            UnityEngine.Random.Range(minValue.x, maxValue.x),
+            UnityEngine.Random.Range(minValue.y, maxValue.y),
             UnityEngine.Random.Range(minValue.z, maxValue.z)
         );
         for (int distance = 0; distance < 400; distance = distance + 15)
@@ -346,7 +395,7 @@ public class Player : MonoBehaviour
     {
         if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
-            if(Vector3.Distance(t.position, v) < d)
+            if (Vector3.Distance(t.position, v) < d)
                 t.gameObject.GetComponent<Renderer>().material.color = c;
         }
         foreach (Transform child in t)
@@ -376,7 +425,7 @@ public class Player : MonoBehaviour
             UnityEngine.Random.Range(minValue.y, maxValue.y),
             UnityEngine.Random.Range(minValue.z, maxValue.z)
         );
-        if(closestLEDs?[closestLEDindex] != null & previousColor != null)
+        if (closestLEDs?[closestLEDindex] != null & previousColor != null)
         {
             closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color = previousColor;
         }
@@ -386,14 +435,14 @@ public class Player : MonoBehaviour
         closestLEDindex = UnityEngine.Random.Range(0, 2);
 
         //Debug.Log("1 - Closest LED name: " + closestLED.name);
-        lastLEDs[lastLEDs.Length-1] = closestLEDs[closestLEDindex];
+        lastLEDs[lastLEDs.Length - 1] = closestLEDs[closestLEDindex];
         previousColor = closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color;
         closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color = c;
         for (; ; )
         {
             startingPoint = closestLEDs[closestLEDindex].position;
             //closestLED.gameObject.GetComponent<Renderer>().material.color = previousColor;
-            if(lastLEDs[0] != null)
+            if (lastLEDs[0] != null)
                 lastLEDs[0].gameObject.GetComponent<Renderer>().material.color = previousColor;
 
             // Choose one out of 3 LEDs as next position
@@ -401,7 +450,7 @@ public class Player : MonoBehaviour
             closestLEDindex = UnityEngine.Random.Range(0, 2);
 
             Array.Copy(lastLEDs, 1, lastLEDs, 0, lastLEDs.Length - 1);
-            lastLEDs[lastLEDs.Length-1] = closestLEDs[closestLEDindex];
+            lastLEDs[lastLEDs.Length - 1] = closestLEDs[closestLEDindex];
             //Debug.Log("2 - Closest LED name: " + closestLED.name + " distance: " + closestLEDdistance);
             closestLEDsDistances = new float[3] { 99999, 99999, 99999 };
             if (lastLEDs[0] != null)
@@ -416,11 +465,12 @@ public class Player : MonoBehaviour
         if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             bool isPreviousLED = false;
-            for(int i = 0; i < lastLEDs.Length; i++)
+            for (int i = 0; i < lastLEDs.Length; i++)
                 if (lastLEDs?[i]?.name == t.name) isPreviousLED = true;
 
             float distance = Vector3.Distance(t.position, v);
-            for (int i = 0; i < closestLEDsDistances.Length; i++) {
+            for (int i = 0; i < closestLEDsDistances.Length; i++)
+            {
                 if (distance < closestLEDsDistances[i] & distance > float.Epsilon & !isPreviousLED)
                 {
                     closestLEDs[i] = t;
@@ -459,7 +509,7 @@ public class Player : MonoBehaviour
         var distance2 = heading.magnitude;
         var direction = heading / distance2; // This is now the normalized direction.
         var currentDistance = Vector3.Distance(centralPoint, newPosition);
-        while(currentDistance < greatestDistanceFromCentre)
+        while (currentDistance < greatestDistanceFromCentre)
         {
             TurnOnLEDsBasedOnDistance(CasulaObject, c, newPosition, 50);
             newPosition = newPosition + (direction * 10);
@@ -474,13 +524,13 @@ public class Player : MonoBehaviour
     public void DisableWires()
     {
         WiresVisible = !WiresVisible;
-        HideObjectByName(CasulaObject, new string[] { "Wires", "wire", "Wire" }, WiresVisible);   
+        HideObjectByName(CasulaObject, new string[] { "Wires", "wire", "Wire" }, WiresVisible);
     }
 
     public void DisableLEDs()
     {
         LEDsVisible = !LEDsVisible;
-        HideObjectByName(CasulaObject, new string[] { "LU", "LD", "LED"}, LEDsVisible);
+        HideObjectByName(CasulaObject, new string[] { "LU", "LD", "LED" }, LEDsVisible);
     }
 
     public void DisableUnits()
@@ -493,7 +543,7 @@ public class Player : MonoBehaviour
     public void DisableSpeakers()
     {
         SpeakersVisible = !SpeakersVisible;
-        HideObjectByName(CasulaObject, new string[] { "Speakers", "speakers", "SU", "SD", "Speaker"  }, SpeakersVisible);
+        HideObjectByName(CasulaObject, new string[] { "Speakers", "speakers", "SU", "SD", "Speaker" }, SpeakersVisible);
     }
 
     public void ResetCamera()
@@ -554,7 +604,7 @@ public class Player : MonoBehaviour
 
     public void OnMove(InputValue value)
     {
-       //Debug.Log("It Moves!");
+        //Debug.Log("It Moves!");
     }
 
     void Update()
@@ -612,7 +662,7 @@ public class Player : MonoBehaviour
         }
 
         if (Input.GetKey(KeyCode.RightArrow))
-        {          
+        {
             updateCameraOnKeyArrow(Vector3.right);
         }
         if (Input.GetKey(KeyCode.LeftArrow))
@@ -661,6 +711,76 @@ public class Player : MonoBehaviour
         pan = pan - direction;
         mainCamera.transform.position = pan + new Vector3(0, yCorrection, 0);
         mainCamera.transform.Translate(new Vector3(0, 0, -distanceToTarget));
+    }
+
+
+    void OnReceiveModelState(OscMessage message)
+    {
+        string messageJSON = message.ToString();
+        Debug.Log(messageJSON);
+        ParseJsonBoids(messageJSON);
+        /*
+        foreach (KeyValuePair<int, Boid> kvp in Boids)
+        {
+            // Process colision detection here.
+            Console.WriteLine("Key = {0}, Value = {1}",
+                kvp.Key, kvp.Value.id);
+        }
+        */
+    }
+
+    void ParseJsonBoids(string json)
+    {
+        var N = SimpleJSON.JSON.Parse(json);
+        int count = 0;
+
+        while (true)
+        {
+            if (N[count.ToString()]["location"] != null)
+            {
+                Boid newBoid;
+                try
+                {
+                    newBoid = Boids[count];
+                }
+                catch (KeyNotFoundException)
+                {
+                    newBoid = new Boid();
+                    newBoid.id = count;
+                    newBoid.acceleration = new double[2];
+                    newBoid.location = new double[2];
+                    newBoid.velocity = new double[2];
+                    Boids.Add(count, newBoid);
+                }
+
+                string acceleration = N[count.ToString()]["acceleration"];
+                string[] accSplit = acceleration.Split(',');
+
+                newBoid.acceleration[0] = double.Parse(accSplit[0]);
+                newBoid.acceleration[1] = double.Parse(accSplit[1]);
+
+                string location = N[count.ToString()]["location"];
+                string[] locSplit = location.Split(',');
+
+                newBoid.location[0] = double.Parse(locSplit[0]);
+                newBoid.location[1] = double.Parse(locSplit[1]);
+
+                string velocity = N[count.ToString()]["velocity"];
+                string[] velSplit = velocity.Split(',');
+
+                newBoid.velocity[0] = double.Parse(velSplit[0]);
+                newBoid.velocity[1] = double.Parse(velSplit[1]);
+
+                count++;
+                
+            }
+            else
+            {
+                Debug.Log(count + " Boids processed");
+                break;
+            }
+        }
+
     }
 
 }

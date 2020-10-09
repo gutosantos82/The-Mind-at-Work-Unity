@@ -86,7 +86,7 @@ public class OBJExporter : ScriptableWizard
 
     void OnWizardCreate()
     {
-        if(StaticBatchingEnabled() && Application.isPlaying)
+        if (StaticBatchingEnabled() && Application.isPlaying)
         {
             EditorUtility.DisplayDialog("Error", "Static batching is enabled. This will cause the export file to look like a mess, as well as be a large filesize. Disable this option, and restart the player, before continuing.", "OK");
             goto end;
@@ -94,7 +94,7 @@ public class OBJExporter : ScriptableWizard
         if (autoMarkTexReadable)
         {
             int yes = EditorUtility.DisplayDialogComplex("Warning", "This will convert all textures to Advanced type with the read/write option set. This is not reversible and will permanently affect your project. Continue?", "Yes", "No", "Cancel");
-            if(yes > 0)
+            if (yes > 0)
             {
                 goto end;
             }
@@ -109,7 +109,7 @@ public class OBJExporter : ScriptableWizard
             EditorPrefs.SetString("a4_OBJExport_lastPath", fi.Directory.FullName);
             Export(expFile);
         }
-        end:;
+    end:;
     }
 
     void Export(string exportPath)
@@ -160,13 +160,13 @@ public class OBJExporter : ScriptableWizard
                 }
             }
         }
-        
+
         //work on export
         StringBuilder sb = new StringBuilder();
         StringBuilder sbMaterials = new StringBuilder();
         //sb.AppendLine("# Export of " + Application.loadedLevelName);
-	Scene curScene = EditorSceneManager.GetActiveScene();
-	sb.AppendLine("# Export of " + curScene);
+        Scene curScene = EditorSceneManager.GetActiveScene();
+        sb.AppendLine("# Export of " + curScene);
         sb.AppendLine("# from Aaro4130 OBJ Exporter " + versionString);
         if (generateMaterials)
         {
@@ -174,7 +174,7 @@ public class OBJExporter : ScriptableWizard
         }
         float maxExportProgress = (float)(sceneMeshes.Length + 1);
         int lastIndex = 0;
-        for(int i = 0; i < sceneMeshes.Length; i++)
+        for (int i = 0; i < sceneMeshes.Length; i++)
         {
             string meshName = sceneMeshes[i].gameObject.name;
             float progress = (float)(i + 1) / maxExportProgress;
@@ -191,10 +191,10 @@ public class OBJExporter : ScriptableWizard
                 }
                 sb.AppendLine("g " + exportName);
             }
-            if(mr != null && generateMaterials)
+            if (mr != null && generateMaterials)
             {
                 Material[] mats = mr.sharedMaterials;
-                for(int j=0; j < mats.Length; j++)
+                for (int j = 0; j < mats.Length; j++)
                 {
                     Material m = mats[j];
                     if (!materialCache.ContainsKey(m.name))
@@ -209,7 +209,7 @@ public class OBJExporter : ScriptableWizard
             //export the meshhh :3
             Mesh msh = mf.sharedMesh;
             int faceOrder = (int)Mathf.Clamp((mf.gameObject.transform.lossyScale.x * mf.gameObject.transform.lossyScale.z), -1, 1);
-            
+
             //export vector data (FUN :D)!
             foreach (Vector3 vx in msh.vertices)
             {
@@ -218,10 +218,10 @@ public class OBJExporter : ScriptableWizard
                 {
                     v = MultiplyVec3s(v, mf.gameObject.transform.lossyScale);
                 }
-                
+
                 if (applyRotation)
                 {
-  
+
                     v = RotateAroundPoint(v, Vector3.zero, mf.gameObject.transform.rotation);
                 }
 
@@ -235,7 +235,7 @@ public class OBJExporter : ScriptableWizard
             foreach (Vector3 vx in msh.normals)
             {
                 Vector3 v = vx;
-                
+
                 if (applyScale)
                 {
                     v = MultiplyVec3s(v, mf.gameObject.transform.lossyScale.normalized);
@@ -253,9 +253,9 @@ public class OBJExporter : ScriptableWizard
                 sb.AppendLine("vt " + v.x + " " + v.y);
             }
 
-            for (int j=0; j < msh.subMeshCount; j++)
+            for (int j = 0; j < msh.subMeshCount; j++)
             {
-                if(mr != null && j < mr.sharedMaterials.Length)
+                if (mr != null && j < mr.sharedMaterials.Length)
                 {
                     string matName = mr.sharedMaterials[j].name;
                     sb.AppendLine("usemtl " + matName);
@@ -266,12 +266,12 @@ public class OBJExporter : ScriptableWizard
                 }
 
                 int[] tris = msh.GetTriangles(j);
-                for(int t = 0; t < tris.Length; t+= 3)
+                for (int t = 0; t < tris.Length; t += 3)
                 {
                     int idx2 = tris[t] + 1 + lastIndex;
                     int idx1 = tris[t + 1] + 1 + lastIndex;
                     int idx0 = tris[t + 2] + 1 + lastIndex;
-                    if(faceOrder < 0)
+                    if (faceOrder < 0)
                     {
                         sb.AppendLine("f " + ConstructOBJString(idx2) + " " + ConstructOBJString(idx1) + " " + ConstructOBJString(idx0));
                     }
@@ -279,7 +279,7 @@ public class OBJExporter : ScriptableWizard
                     {
                         sb.AppendLine("f " + ConstructOBJString(idx0) + " " + ConstructOBJString(idx1) + " " + ConstructOBJString(idx2));
                     }
-                    
+
                 }
             }
 
@@ -297,12 +297,12 @@ public class OBJExporter : ScriptableWizard
         EditorUtility.ClearProgressBar();
     }
 
-    string TryExportTexture(string propertyName,Material m)
+    string TryExportTexture(string propertyName, Material m)
     {
         if (m.HasProperty(propertyName))
         {
             Texture t = m.GetTexture(propertyName);
-            if(t != null)
+            if (t != null)
             {
                 return ExportTexture((Texture2D)t);
             }
@@ -338,7 +338,7 @@ public class OBJExporter : ScriptableWizard
         }
         catch (System.Exception ex)
         {
-            Debug.Log("Could not export texture : " + t.name + ". is it readable?");
+            Debug.Log("Could not export texture : " + t.name + ". is it readable?" + ex.Message);
             return "null";
         }
 
@@ -372,7 +372,8 @@ public class OBJExporter : ScriptableWizard
             Color sc = m.GetColor("_SpecColor");
             sb.AppendLine("Ks " + sc.r.ToString() + " " + sc.g.ToString() + " " + sc.b.ToString());
         }
-        if (exportTextures) {
+        if (exportTextures)
+        {
             //diffuse
             string exResult = TryExportTexture("_MainTex", m);
             if (exResult != "false")
@@ -392,7 +393,7 @@ public class OBJExporter : ScriptableWizard
                 sb.AppendLine("map_Bump " + exResult);
             }
 
-    }
+        }
         sb.AppendLine("illum 2");
         return sb.ToString();
     }
