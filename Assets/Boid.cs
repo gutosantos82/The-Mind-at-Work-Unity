@@ -1,10 +1,11 @@
 ﻿using System;
+using UnityEngine;
 
 [Serializable]
 public class Boid
 {
-    public double[] acceleration;
-    public double[] location;
-    public double[] velocity;
+    public Vector3 acceleration;
+    public Vector3 location;
+    public Vector3 velocity;
     public int id;
 }
