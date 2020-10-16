@@ -49,6 +49,7 @@ public class Player : MonoBehaviour
     public void Awake()
     {
         osc.SetAddressHandler("/modelState", OnReceiveModelState);
+        osc.SetAddressHandler("/colors", OnReceiveColors);
 
         WiresVisible = true;
         SpeakersVisible = true;
@@ -486,7 +487,7 @@ public class Player : MonoBehaviour
             }
             else
             {
-                Debug.Log(count + " Boids processed");
+                //Debug.Log(count + " Boids processed");
                 break;
             }
         }
@@ -533,6 +534,61 @@ public class Player : MonoBehaviour
         {
             CheckBoidsObjectsCollision(child);
         }
+    }
+
+    void OnReceiveColors(OscMessage message)
+    {
+        string messageJSON = message.ToString();
+        //Debug.Log(messageJSON);
+        ParseJsonColors(messageJSON);
+    }
+
+    void ParseJsonColors(string json)
+    {
+        var N = SimpleJSON.JSON.Parse(json);
+        int count = 0;
+
+        while (true)
+        {
+            if (N[count.ToString()]["name"] != null)
+            {
+                string name = N[count.ToString()]["name"];
+                string[] nameSet = name.Split('-');
+
+                string rgb =  N[count.ToString()]["rgb"];
+                string[] rgbArray = rgb.Split(',');
+                float[] rgbFloat = new float[3];
+                try
+                {
+                    rgbFloat[0] = float.Parse(rgbArray[0]);
+                    rgbFloat[1] = float.Parse(rgbArray[1]);
+                    rgbFloat[2] = float.Parse(rgbArray[2]);
+                }
+                catch (FormatException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+
+                try
+                {
+                    CasulaObject.Find(nameSet[0]).Find(nameSet[1]).Find(nameSet[2]).
+                        GetComponent<Renderer>().material.color = new Color(rgbFloat[0] / 255, rgbFloat[1] / 255, rgbFloat[2] / 255);
+                }
+                catch (NullReferenceException e)
+                {
+                    Debug.Log("No object name " + name + " found.");
+                }
+
+                count++;
+
+            }
+            else
+            {
+                //Debug.Log(count + " colors processed");
+                break;
+            }
+        }
+
     }
 
 }
