@@ -23,38 +23,18 @@ public class Player : MonoBehaviour
     private Vector3 previousPosition2;
     private Vector3 pan;
     private float distanceToTarget;
-    private float greatestDistanceFromCentre;
     private float scale;
     private float speed;
     private float yCorrection;
     private Vector3 maxValue;
     private Vector3 minValue;
     private Vector3 boxSize;
-    private Vector3 centralPoint;
     private Quaternion cameraQReset;
+    private Color defaultColor;
 
-    private bool isFireworksOn;
-    private IEnumerator coroutineFireworks;
-
-    private bool isPlaneLightsOnXOn;
-    private IEnumerator coroutinePlaneLightsOnX;
-
-    private bool isXmasOn;
-    private IEnumerator coroutineXmas;
-
-    private bool isSnakeOn;
-    private IEnumerator coroutineSnake;
-    private float closestLEDdistance;
-    private Transform[] closestLEDs;
-    private float[] closestLEDsDistances;
-    private int closestLEDindex;
-    private Color previousColor;
-    private Transform[] lastLEDs;
+    private ModelsHandler modelsHandler;
 
     private Dictionary<int, Vector3> originalPositions = new Dictionary<int, Vector3>();
-
-    private bool isPingPongOn;
-    private IEnumerator coroutinePingPong;
 
     private int countPIs = 0;
     private int countSpeakers = 0;
@@ -69,38 +49,19 @@ public class Player : MonoBehaviour
     public void Awake()
     {
         osc.SetAddressHandler("/modelState", OnReceiveModelState);
+        osc.SetAddressHandler("/colors", OnReceiveColors);
 
         WiresVisible = true;
         SpeakersVisible = true;
         UnitsVisible = true;
         LEDsVisible = true;
         distanceToTarget = 700;
-        greatestDistanceFromCentre = 0;
         scale = 5f;
         speed = 50.0f;
         yCorrection = 200;
         cameraQReset = mainCamera.transform.rotation;
 
         ResetCamera();
-
-        coroutineFireworks = Fireworks();
-        isFireworksOn = false;
-
-        coroutinePlaneLightsOnX = PlaneLightsOnX();
-        isPlaneLightsOnXOn = false;
-
-        coroutineXmas = Xmas();
-        isXmasOn = false;
-
-        coroutineSnake = Snake();
-        isSnakeOn = false;
-        lastLEDs = new Transform[10];
-        closestLEDs = new Transform[3];
-        closestLEDsDistances = new float[3] { 99999, 99999, 99999 };
-        closestLEDindex = 0;
-
-        coroutinePingPong = PingPong();
-        isPingPongOn = false;
 
         maxValue = new Vector3(-9999, -9999, -9999);
         minValue = new Vector3(9999, 9999, 9999);
@@ -109,12 +70,8 @@ public class Player : MonoBehaviour
         boxSize = maxValue - minValue;
         Debug.Log("boxSize:" + boxSize);
 
-        centralPoint = new Vector3(
-            minValue.x + (maxValue.x - minValue.x) / 2,
-            minValue.y + (maxValue.y - minValue.y) / 2,
-            minValue.z + (maxValue.z - minValue.z) / 2
-        );
-        ComputeGreatestDistanceFromCentre(CasulaObject.gameObject, centralPoint);
+        modelsHandler = new ModelsHandler(this, CasulaObject, minValue, maxValue);
+
         Debug.Log("countPIs:" + countPIs + "\tcountLEDs:" + countLEDs + "\tcountSpeakers:" + countSpeakers);
 
         File.WriteAllText("cable_lengths.csv", "PParent,Parent,ObjectName,dist-X,dist-Y,Z\n");
@@ -129,12 +86,14 @@ public class Player : MonoBehaviour
 
         CreateWires(CasulaObject);
 
+        defaultColor = GameObject.Find("G1In LED 1").GetComponent<Renderer>().material.color;
+
         DisableUnits();
         DisableWires();
         DisableSpeakers();
     }
 
-    private void ComputeGreatestDistanceFromCentre(GameObject g, Vector3 c)
+    private void ComputeObjectPosition(GameObject g)
     {
 
         if (g.transform.name.Contains("LU") || g.transform.name.Contains("LD") || g.transform.name.Contains("LED"))
@@ -147,17 +106,6 @@ public class Player : MonoBehaviour
         || g.transform.name.Contains("SU") || g.transform.name.Contains("SD") || g.transform.name.Contains("Speaker"))
             countSpeakers++;
 
-        float distance = Vector3.Distance(g.transform.position, c);
-        if (distance > greatestDistanceFromCentre)
-            greatestDistanceFromCentre = distance;
-        foreach (Transform child in g.transform)
-        {
-            ComputeGreatestDistanceFromCentre(child.gameObject, c);
-        }
-    }
-
-    private void ComputeObjectPosition(GameObject g)
-    {
         try
         {
             originalPositions.Add(g.transform.GetInstanceID(), g.transform.position);
@@ -289,236 +237,6 @@ public class Player : MonoBehaviour
         WiresVisible = !WiresVisible;
         Debug.Log("It Disable Wires!");
         HideObjectByName(CasulaObject, new string[] { "Wires", "wire" }, WiresVisible);
-    }
-
-    public void OnOffXmas()
-    {
-        if (isXmasOn) StopCoroutine(coroutineXmas);
-        else StartCoroutine(coroutineXmas);
-        isXmasOn = !isXmasOn;
-    }
-
-    IEnumerator Xmas()
-    {
-        for (; ; )
-        {
-            Color c = ColorHSV.GetRandomColor(UnityEngine.Random.Range(0.0f, 360f), 1, 1);
-            FlashLEDs(CasulaObject, c);
-            yield return new WaitForSeconds(1f);
-        }
-    }
-
-    private void FlashLEDs(Transform t, Color c)
-    {
-        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
-        {
-            t.gameObject.GetComponent<Renderer>().material.color = c;
-        }
-        foreach (Transform child in t)
-        {
-            FlashLEDs(child, c);
-        }
-    }
-
-    public void OnOffPlaneLightsOnX()
-    {
-        if (isPlaneLightsOnXOn)
-        {
-            StopCoroutine(coroutinePlaneLightsOnX);
-            coroutinePlaneLightsOnX = PlaneLightsOnX();
-        }
-        else
-        {
-            StartCoroutine(coroutinePlaneLightsOnX);
-        }
-        isPlaneLightsOnXOn = !isPlaneLightsOnXOn;
-    }
-
-    IEnumerator PlaneLightsOnX()
-    {
-        Color c = ColorHSV.GetRandomColor(UnityEngine.Random.Range(0.0f, 360f), 1, 1);
-        for (float i = minValue.x; i < maxValue.x; i = i + 10)
-        {
-            //Debug.Log(i);
-            TurnOnLEDsBasedOnX(CasulaObject, c, i);
-            //yield return new WaitForSeconds(.1f);
-            yield return null;
-        }
-        coroutinePlaneLightsOnX = PlaneLightsOnX();
-        StartCoroutine(coroutinePlaneLightsOnX);
-    }
-
-    private void TurnOnLEDsBasedOnX(Transform t, Color c, float x)
-    {
-        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
-        {
-            if (Math.Abs(t.position.x - x) < 10)
-                t.gameObject.GetComponent<Renderer>().material.color = c;
-        }
-        foreach (Transform child in t)
-        {
-            TurnOnLEDsBasedOnX(child, c, x);
-        }
-    }
-
-    public void OnOffFireworks()
-    {
-        if (isFireworksOn)
-        {
-            StopCoroutine(coroutineFireworks);
-            coroutineFireworks = Fireworks();
-        }
-        else StartCoroutine(coroutineFireworks);
-        isFireworksOn = !isFireworksOn;
-    }
-
-    IEnumerator Fireworks()
-    {
-        Color c = ColorHSV.GetRandomColor(UnityEngine.Random.Range(0.0f, 360f), 1, 1);
-        //Color c = new Color(UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f));
-        Vector3 startingPoint = new Vector3(
-            UnityEngine.Random.Range(minValue.x, maxValue.x),
-            UnityEngine.Random.Range(minValue.y, maxValue.y),
-            UnityEngine.Random.Range(minValue.z, maxValue.z)
-        );
-        for (int distance = 0; distance < 400; distance = distance + 15)
-        {
-            TurnOnLEDsBasedOnDistance(CasulaObject, c, startingPoint, distance);
-            yield return null;
-        }
-        yield return new WaitForSeconds(1f);
-        coroutineFireworks = Fireworks();
-        StartCoroutine(coroutineFireworks);
-    }
-
-    private void TurnOnLEDsBasedOnDistance(Transform t, Color c, Vector3 v, int d)
-    {
-        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
-        {
-            if (Vector3.Distance(t.position, v) < d)
-                t.gameObject.GetComponent<Renderer>().material.color = c;
-        }
-        foreach (Transform child in t)
-        {
-            TurnOnLEDsBasedOnDistance(child, c, v, d);
-        }
-    }
-
-    public void OnOffSnake()
-    {
-        if (isSnakeOn)
-        {
-            StopCoroutine(coroutineSnake);
-            coroutineSnake = Snake();
-        }
-        else StartCoroutine(coroutineSnake);
-        isSnakeOn = !isSnakeOn;
-    }
-
-    IEnumerator Snake()
-    {
-        closestLEDsDistances = new float[3] { 99999, 99999, 99999 };
-        Color c = ColorHSV.GetRandomColor(UnityEngine.Random.Range(0.0f, 360f), 1, 1);
-        //Color c = new Color(UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f), UnityEngine.Random.Range(0.0f, 1.0f));
-        Vector3 startingPoint = new Vector3(
-            UnityEngine.Random.Range(minValue.x, maxValue.x),
-            UnityEngine.Random.Range(minValue.y, maxValue.y),
-            UnityEngine.Random.Range(minValue.z, maxValue.z)
-        );
-        if (closestLEDs?[closestLEDindex] != null & previousColor != null)
-        {
-            closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color = previousColor;
-        }
-
-        // Choose one out of 3 LEDs as next position
-        CheckClosestLED(CasulaObject, startingPoint);
-        closestLEDindex = UnityEngine.Random.Range(0, 2);
-
-        //Debug.Log("1 - Closest LED name: " + closestLED.name);
-        lastLEDs[lastLEDs.Length - 1] = closestLEDs[closestLEDindex];
-        previousColor = closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color;
-        closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color = c;
-        for (; ; )
-        {
-            startingPoint = closestLEDs[closestLEDindex].position;
-            //closestLED.gameObject.GetComponent<Renderer>().material.color = previousColor;
-            if (lastLEDs[0] != null)
-                lastLEDs[0].gameObject.GetComponent<Renderer>().material.color = previousColor;
-
-            // Choose one out of 3 LEDs as next position
-            CheckClosestLED(CasulaObject, startingPoint);
-            closestLEDindex = UnityEngine.Random.Range(0, 2);
-
-            Array.Copy(lastLEDs, 1, lastLEDs, 0, lastLEDs.Length - 1);
-            lastLEDs[lastLEDs.Length - 1] = closestLEDs[closestLEDindex];
-            //Debug.Log("2 - Closest LED name: " + closestLED.name + " distance: " + closestLEDdistance);
-            closestLEDsDistances = new float[3] { 99999, 99999, 99999 };
-            if (lastLEDs[0] != null)
-                previousColor = closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color;
-            closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color = c;
-            yield return null;  //new WaitForSeconds(0.2f);
-        }
-    }
-
-    private void CheckClosestLED(Transform t, Vector3 v)
-    {
-        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
-        {
-            bool isPreviousLED = false;
-            for (int i = 0; i < lastLEDs.Length; i++)
-                if (lastLEDs?[i]?.name == t.name) isPreviousLED = true;
-
-            float distance = Vector3.Distance(t.position, v);
-            for (int i = 0; i < closestLEDsDistances.Length; i++)
-            {
-                if (distance < closestLEDsDistances[i] & distance > float.Epsilon & !isPreviousLED)
-                {
-                    closestLEDs[i] = t;
-                    closestLEDsDistances[i] = distance;
-                    break;
-                }
-            }
-        }
-        foreach (Transform child in t)
-        {
-            CheckClosestLED(child, v);
-        }
-    }
-
-    public void OnOffPingPong()
-    {
-        if (isPingPongOn)
-        {
-            StopCoroutine(coroutinePingPong);
-            coroutinePingPong = PingPong();
-        }
-        else StartCoroutine(coroutinePingPong);
-        isPingPongOn = !isPingPongOn;
-    }
-
-    IEnumerator PingPong()
-    {
-        Color c = ColorHSV.GetRandomColor(UnityEngine.Random.Range(0.0f, 360f), 1, 1);
-        Vector3 newPosition = centralPoint;
-        Vector3 directionPoint = new Vector3(
-            UnityEngine.Random.Range(minValue.x, maxValue.x),
-            UnityEngine.Random.Range(minValue.y, maxValue.y),
-            UnityEngine.Random.Range(minValue.z, maxValue.z)
-        );
-        var heading = centralPoint - directionPoint;
-        var distance2 = heading.magnitude;
-        var direction = heading / distance2; // This is now the normalized direction.
-        var currentDistance = Vector3.Distance(centralPoint, newPosition);
-        while (currentDistance < greatestDistanceFromCentre)
-        {
-            TurnOnLEDsBasedOnDistance(CasulaObject, c, newPosition, 50);
-            newPosition = newPosition + (direction * 10);
-            currentDistance = Vector3.Distance(centralPoint, newPosition);
-            yield return null;
-        }
-        yield return new WaitForSeconds(1f);
-        coroutinePingPong = PingPong();
-        StartCoroutine(coroutinePingPong);
     }
 
     public void DisableWires()
@@ -679,27 +397,27 @@ public class Player : MonoBehaviour
         }
         if (Input.GetKeyDown("1"))
         {
-            OnOffXmas();
+            modelsHandler.OnOffXmas();
         }
 
         if (Input.GetKeyDown("2"))
         {
-            OnOffPlaneLightsOnX();
+            modelsHandler.OnOffPlaneLightsOnX();
         }
 
         if (Input.GetKeyDown("3"))
         {
-            OnOffFireworks();
+            modelsHandler.OnOffFireworks();
         }
 
         if (Input.GetKeyDown("4"))
         {
-            OnOffSnake();
+            modelsHandler.OnOffSnake();
         }
 
         if (Input.GetKeyDown("5"))
         {
-            OnOffPingPong();
+            modelsHandler.OnOffPingPong();
         }
     }
 
@@ -717,16 +435,9 @@ public class Player : MonoBehaviour
     void OnReceiveModelState(OscMessage message)
     {
         string messageJSON = message.ToString();
-        Debug.Log(messageJSON);
+        //Debug.Log(messageJSON);
         ParseJsonBoids(messageJSON);
-        /*
-        foreach (KeyValuePair<int, Boid> kvp in Boids)
-        {
-            // Process colision detection here.
-            Console.WriteLine("Key = {0}, Value = {1}",
-                kvp.Key, kvp.Value.id);
-        }
-        */
+        CheckBoidsObjectsCollision(CasulaObject);
     }
 
     void ParseJsonBoids(string json)
@@ -747,36 +458,133 @@ public class Player : MonoBehaviour
                 {
                     newBoid = new Boid();
                     newBoid.id = count;
-                    newBoid.acceleration = new double[2];
-                    newBoid.location = new double[2];
-                    newBoid.velocity = new double[2];
+                    newBoid.acceleration = new Vector3();
+                    newBoid.location = new Vector3();
+                    newBoid.velocity = new Vector3();
                     Boids.Add(count, newBoid);
                 }
 
                 string acceleration = N[count.ToString()]["acceleration"];
                 string[] accSplit = acceleration.Split(',');
 
-                newBoid.acceleration[0] = double.Parse(accSplit[0]);
-                newBoid.acceleration[1] = double.Parse(accSplit[1]);
+                newBoid.acceleration.x = float.Parse(accSplit[0]);
+                newBoid.acceleration.y = float.Parse(accSplit[1]);
 
                 string location = N[count.ToString()]["location"];
                 string[] locSplit = location.Split(',');
 
-                newBoid.location[0] = double.Parse(locSplit[0]);
-                newBoid.location[1] = double.Parse(locSplit[1]);
+                newBoid.location.x = float.Parse(locSplit[0]);
+                newBoid.location.y = float.Parse(locSplit[1]);
 
                 string velocity = N[count.ToString()]["velocity"];
                 string[] velSplit = velocity.Split(',');
 
-                newBoid.velocity[0] = double.Parse(velSplit[0]);
-                newBoid.velocity[1] = double.Parse(velSplit[1]);
+                newBoid.velocity.x = float.Parse(velSplit[0]);
+                newBoid.velocity.y = float.Parse(velSplit[1]);
 
                 count++;
                 
             }
             else
             {
-                Debug.Log(count + " Boids processed");
+                //Debug.Log(count + " Boids processed");
+                break;
+            }
+        }
+
+    }
+
+    void CheckBoidsObjectsCollision(Transform t)
+    {
+        bool hasChanged = false;
+        if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
+        {
+            Vector3 objectPosition = t.position - minValue;
+            objectPosition.y = objectPosition.z;
+            objectPosition.z = 0;
+
+            foreach (KeyValuePair<int, Boid> kvp in Boids)
+            {
+                // Process colision detection here.
+
+                Vector3 boidLocation = kvp.Value.location;
+                float distance = Vector3.Distance(objectPosition, boidLocation);
+                // Debug.Log("Distance between " + t.name + "  and Boid " + kvp.Value.id + " is " + distance);
+
+                if (t.name.Contains("G1In"))
+                {
+                    //Debug.Log("Distance between " + t.name  +  "(" + objectPosition +  ")  and Boid " + kvp.Value.id  + " (" + boidLocation + ") is " + distance);
+                }
+
+                if (distance < 70)
+                {
+                    t.gameObject.GetComponent<Renderer>().material.color = new ColorHSV((kvp.Value.id+1)*(360/Boids.Count), 1 - (distance/70), 1).ToColor();
+                    hasChanged = true;
+                }
+                else
+                {
+                    if (!hasChanged)
+                    {
+                        t.gameObject.GetComponent<Renderer>().material.color = defaultColor;
+                    }
+                }
+            }
+        }
+        foreach (Transform child in t)
+        {
+            CheckBoidsObjectsCollision(child);
+        }
+    }
+
+    void OnReceiveColors(OscMessage message)
+    {
+        string messageJSON = message.ToString();
+        //Debug.Log(messageJSON);
+        ParseJsonColors(messageJSON);
+    }
+
+    void ParseJsonColors(string json)
+    {
+        var N = SimpleJSON.JSON.Parse(json);
+        int count = 0;
+
+        while (true)
+        {
+            if (N[count.ToString()]["name"] != null)
+            {
+                string name = N[count.ToString()]["name"];
+                string[] nameSet = name.Split('-');
+
+                string rgb =  N[count.ToString()]["rgb"];
+                string[] rgbArray = rgb.Split(',');
+                float[] rgbFloat = new float[3];
+                try
+                {
+                    rgbFloat[0] = float.Parse(rgbArray[0]);
+                    rgbFloat[1] = float.Parse(rgbArray[1]);
+                    rgbFloat[2] = float.Parse(rgbArray[2]);
+                }
+                catch (FormatException e)
+                {
+                    Console.WriteLine(e.Message);
+                }
+
+                try
+                {
+                    CasulaObject.Find(nameSet[0]).Find(nameSet[1]).Find(nameSet[2]).
+                        GetComponent<Renderer>().material.color = new Color(rgbFloat[0] / 255, rgbFloat[1] / 255, rgbFloat[2] / 255);
+                }
+                catch (NullReferenceException e)
+                {
+                    Debug.Log("No object name " + name + " found.");
+                }
+
+                count++;
+
+            }
+            else
+            {
+                //Debug.Log(count + " colors processed");
                 break;
             }
         }
