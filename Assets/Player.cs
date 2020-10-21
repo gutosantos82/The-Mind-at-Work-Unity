@@ -87,7 +87,7 @@ public class Player : MonoBehaviour
 
         CreateWires(CasulaObject);
 
-        defaultColor = GameObject.Find("G1In LED 1").GetComponent<Renderer>().material.color;
+        defaultColor = CasulaObject.Find("Group 1").Find("Outer_Section_1").Find("2_1 LED 1").GetComponent<Renderer>().material.color;
 
         DisableUnits();
         DisableWires();
@@ -580,7 +580,7 @@ public class Player : MonoBehaviour
                     CasulaObject.Find(nameSet[0]).Find(nameSet[1]).Find(nameSet[2]).
                         GetComponent<Renderer>().material.color = new Color(rgbFloat[0] / 255, rgbFloat[1] / 255, rgbFloat[2] / 255);
                 }
-                catch (NullReferenceException e)
+                catch (NullReferenceException)
                 {
                     Debug.Log("No object name " + name + " found.");
                 }
