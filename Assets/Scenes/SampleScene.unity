@@ -19315,7 +19315,7 @@ GameObject:
   - component: {fileID: 791038186}
   - component: {fileID: 791038185}
   m_Layer: 0
-  m_Name: G1In LED 1
+  m_Name: 2_1 LED 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
