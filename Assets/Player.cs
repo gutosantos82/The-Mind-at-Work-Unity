@@ -39,6 +39,7 @@ public class Player : MonoBehaviour
     private int countPIs = 0;
     private int countSpeakers = 0;
     private int countLEDs = 0;
+    private int countPI4csv = 0;
 
     private Dictionary<int, Transform> acrylicPlates = new Dictionary<int, Transform>();
     private Dictionary<int, Transform> PIs = new Dictionary<int, Transform>();
@@ -79,7 +80,7 @@ public class Player : MonoBehaviour
         ComputeCableLength(CasulaObject);
         sw.Close();
 
-        File.WriteAllText("hardware_setup_xyz.csv", "PParent,Parent,ObjectName,x,y,z\n");
+        File.WriteAllText("hardware_setup_xyz.csv", "PParent,Parent,Device ID,ObjectName,x,y,z,stripSize\n");
         sw = File.AppendText("hardware_setup_xyz.csv");
         CreateCSVwithPositions(CasulaObject);
         sw.Close();
@@ -187,7 +188,7 @@ public class Player : MonoBehaviour
 
             sw.WriteLine(t.parent.parent.name + "," + t.parent.name + "," + t.name
                 + "," + (acrylicPlatePosition.x - t.position.x)
-                + "," + (acrylicPlatePosition.y - t.position.y)
+                + "," + (acrylicPlatePosition.y - t.position.y - 5)
                 + "," + (acrylicPlatePosition.z - t.position.z)
                 );
         }
@@ -200,14 +201,19 @@ public class Player : MonoBehaviour
 
     private void CreateCSVwithPositions(Transform t)
     {
+        if (t.name.Contains("PI"))
+        {
+            countPI4csv++;
+        }
 
         if (t.name.Contains("LED") || t.name.Contains("Speaker"))
         {
             Vector3 computedPosition = t.position - minValue;
-            sw.WriteLine(t.parent.parent.name + "," + t.parent.name + "," + t.name
+            sw.WriteLine(t.parent.parent.name + "," + t.parent.name + "," + countPI4csv + "," + t.name
                 + "," + computedPosition.x
                 + "," + computedPosition.y
                 + "," + computedPosition.z
+                + ",16"
                 );
         }
 
