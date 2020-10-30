@@ -75,17 +75,19 @@ public class Player : MonoBehaviour
 
         Debug.Log("countPIs:" + countPIs + "\tcountLEDs:" + countLEDs + "\tcountSpeakers:" + countSpeakers);
 
+        /*
         File.WriteAllText("cable_lengths.csv", "PParent,Parent,ObjectName,dist-X,dist-Y,Z\n");
         sw = File.AppendText("cable_lengths.csv");
         ComputeCableLength(CasulaObject);
         sw.Close();
+        */
 
         File.WriteAllText("hardware_setup_xyz.csv", "PParent,Parent,Device ID,ObjectName,x,y,z,stripSize\n");
         sw = File.AppendText("hardware_setup_xyz.csv");
         CreateCSVwithPositions(CasulaObject);
         sw.Close();
 
-        CreateWires(CasulaObject);
+        //CreateWires(CasulaObject);
 
         defaultColor = CasulaObject.Find("Group 1").Find("Outer_Section_1").Find("2_1 LED 1").GetComponent<Renderer>().material.color;
 
@@ -127,7 +129,8 @@ public class Player : MonoBehaviour
         }
 
 
-        if (g.transform.name.Contains("LU") || g.transform.name.Contains("LD") || g.transform.name.Contains("LED"))
+        if (g.transform.name.Contains("LU") || g.transform.name.Contains("LD") ||
+            g.transform.name.Contains("LED") || g.transform.name.Contains("Speaker"))
         {
             if (g.transform.position.x > maxValue.x) maxValue.x = g.transform.position.x;
             if (g.transform.position.y > maxValue.y) maxValue.y = g.transform.position.y;
