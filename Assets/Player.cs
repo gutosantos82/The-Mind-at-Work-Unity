@@ -11,6 +11,7 @@ public class Player : MonoBehaviour
     public Transform CasulaObject;
     public Transform IronMesh;
     public Transform WireSample;
+    public TMPro.TextMeshPro TextSample;
     public OSC osc;
 
     private bool WiresVisible;
@@ -40,6 +41,7 @@ public class Player : MonoBehaviour
     private int countSpeakers = 0;
     private int countLEDs = 0;
     private int countPI4csv = 0;
+    private int countPI4Label = 0;
 
     private Dictionary<int, Transform> acrylicPlates = new Dictionary<int, Transform>();
     private Dictionary<int, Transform> PIs = new Dictionary<int, Transform>();
@@ -87,13 +89,16 @@ public class Player : MonoBehaviour
         CreateCSVwithPositions(CasulaObject);
         sw.Close();
 
-        //CreateWires(CasulaObject);
+        CreateWires(CasulaObject);
+
+        CreateTexts(CasulaObject);
 
         defaultColor = CasulaObject.Find("Group 1").Find("Outer_Section_1").Find("2_1 LED 1").GetComponent<Renderer>().material.color;
 
         DisableUnits();
         DisableWires();
         DisableSpeakers();
+        DisableTexts();
     }
 
     private void ComputeObjectPosition(GameObject g)
@@ -179,6 +184,42 @@ public class Player : MonoBehaviour
         foreach (Transform child in t)
         {
             CreateWires(child);
+        }
+    }
+
+    private void CreateTexts(Transform t)
+    {
+
+        if (t.name.Contains("PI"))
+        {
+            countPI4Label++;
+        }
+        if (t.name.Contains("PI")) //if (t.name.Contains("LED") || t.name.Contains("Speaker"))
+        {
+            Vector3 acrylicPlatePosition = acrylicPlates[t.parent.GetInstanceID()].position;
+
+            TMPro.TextMeshPro newText = Instantiate(TextSample);
+            newText.transform.SetParent(t.parent);
+
+            Vector3 newTextPos = new Vector3(1f, 1f, 1f);
+            newTextPos.x = t.position.x;
+            newTextPos.z = t.position.z;
+            newText.transform.position = newTextPos;
+
+            Vector3 localNewTextPos = newText.transform.localPosition;
+            localNewTextPos.y = acrylicPlates[t.parent.GetInstanceID()].localPosition.y + 10;
+            newText.transform.localPosition = localNewTextPos;
+
+            // newText.text = countPI4Label + " - " + t.name;
+            newText.text = "PI #" + countPI4Label;
+
+
+
+        }
+
+        foreach (Transform child in t)
+        {
+            CreateTexts(child);
         }
     }
 
@@ -271,6 +312,12 @@ public class Player : MonoBehaviour
     {
         SpeakersVisible = !SpeakersVisible;
         HideObjectByName(CasulaObject, new string[] { "Speakers", "speakers", "SU", "SD", "Speaker" }, SpeakersVisible);
+    }
+
+    public void DisableTexts()
+    {
+        LEDsVisible = !LEDsVisible;
+        HideObjectByName(CasulaObject, new string[] { "Text Sample" }, LEDsVisible);
     }
 
     public void ResetCamera()
@@ -427,6 +474,11 @@ public class Player : MonoBehaviour
         if (Input.GetKeyDown("5"))
         {
             modelsHandler.OnOffPingPong();
+        }
+
+        if (Input.GetKeyDown("t"))
+        {
+            DisableTexts();
         }
     }
 
