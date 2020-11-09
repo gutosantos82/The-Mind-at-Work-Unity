@@ -194,7 +194,8 @@ public class Player : MonoBehaviour
         {
             countPI4Label++;
         }
-        if (t.name.Contains("PI")) //if (t.name.Contains("LED") || t.name.Contains("Speaker"))
+        //if (t.name.Contains("PI")) 
+        if (t.name.Contains("LED") || t.name.Contains("PI"))// || t.name.Contains("Speaker"))
         {
             Vector3 acrylicPlatePosition = acrylicPlates[t.parent.GetInstanceID()].position;
 
@@ -210,8 +211,16 @@ public class Player : MonoBehaviour
             localNewTextPos.y = acrylicPlates[t.parent.GetInstanceID()].localPosition.y + 10;
             newText.transform.localPosition = localNewTextPos;
 
-            // newText.text = countPI4Label + " - " + t.name;
-            newText.text = "PI #" + countPI4Label;
+            if(t.name.Contains("PI"))
+            {
+                newText.text = "PI #" + countPI4Label;
+            }
+            else
+            {
+                newText.text = t.name.Substring(4);
+            }
+
+
 
 
 

@@ -19650,6 +19650,7 @@ GameObject:
   - component: {fileID: 741117159}
   - component: {fileID: 741117158}
   - component: {fileID: 741117157}
+  - component: {fileID: 741117160}
   m_Layer: 0
   m_Name: DistanceTool
   m_TagString: Untagged
@@ -19715,6 +19716,28 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 19
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &741117160
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 741117156}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf10c9e8e8461403eae9e48b0bc3670e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  distanceToolName: Distance Tool 1
+  lineColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  initialized: 1
+  initialName: Distance Tool 1
+  startPoint: {x: -248.85521, y: 0, z: -32.757717}
+  endPoint: {x: 180.0841, y: 1, z: -33.655125}
+  distance: 0
+  gizmoRadius: 0.1
+  scaleToPixels: 0
+  pixelPerUnit: 128
 --- !u!1 &742514776
 GameObject:
   m_ObjectHideFlags: 0
@@ -47006,7 +47029,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Sample text
+  m_text: Sample
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -47040,8 +47063,8 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
-  m_textAlignment: 257
+  m_fontStyle: 1
+  m_textAlignment: 258
   m_characterSpacing: 0
   m_wordSpacing: 0
   m_lineSpacing: 0
@@ -47072,13 +47095,13 @@ MonoBehaviour:
   m_firstVisibleCharacter: 0
   m_useMaxVisibleDescender: 1
   m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_margin: {x: 0, y: 0, z: 6.0129995, w: 0}
   m_textInfo:
     textComponent: {fileID: 1711904543}
-    characterCount: 11
+    characterCount: 6
     spriteCount: 0
-    spaceCount: 1
-    wordCount: 2
+    spaceCount: 0
+    wordCount: 1
     linkCount: 0
     lineCount: 1
     pageCount: 1
@@ -47162,7 +47185,7 @@ RectTransform:
   m_GameObject: {fileID: 1711904542}
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: 0, z: -32.8}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.758, y: 1.758, z: 1.758}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 18
