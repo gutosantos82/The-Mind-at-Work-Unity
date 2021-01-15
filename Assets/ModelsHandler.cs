@@ -159,6 +159,8 @@ public class ModelsHandler
         if (closestLEDs?[closestLEDindex] != null & previousColor != null)
         {
             closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color = previousColor;
+            closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+            closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", previousColor * player.ColorEmissionIntensity);
         }
 
         // Choose one out of 3 LEDs as next position
@@ -169,12 +171,18 @@ public class ModelsHandler
         lastLEDs[lastLEDs.Length - 1] = closestLEDs[closestLEDindex];
         previousColor = closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color;
         closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color = c;
+        closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+        closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", c * player.ColorEmissionIntensity);
         for (; ; )
         {
             startingPoint = closestLEDs[closestLEDindex].position;
             //closestLED.gameObject.GetComponent<Renderer>().material.color = previousColor;
             if (lastLEDs[0] != null)
+            {
                 lastLEDs[0].gameObject.GetComponent<Renderer>().material.color = previousColor;
+                lastLEDs[0].gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+                lastLEDs[0].gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", previousColor * player.ColorEmissionIntensity);
+            }
 
             // Choose one out of 3 LEDs as next position
             CheckClosestLED(mainObject, startingPoint);
@@ -185,8 +193,12 @@ public class ModelsHandler
             //Debug.Log("2 - Closest LED name: " + closestLED.name + " distance: " + closestLEDdistance);
             closestLEDsDistances = new float[3] { 99999, 99999, 99999 };
             if (lastLEDs[0] != null)
+            {
                 previousColor = closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color;
+            }
             closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.color = c;
+            closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+            closestLEDs[closestLEDindex].gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", c * player.ColorEmissionIntensity);
             yield return null;  //new WaitForSeconds(0.2f);
         }
     }
@@ -231,6 +243,8 @@ public class ModelsHandler
         if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             t.gameObject.GetComponent<Renderer>().material.color = c;
+            t.gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+            t.gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", c * player.ColorEmissionIntensity);
         }
         foreach (Transform child in t)
         {
@@ -262,7 +276,11 @@ public class ModelsHandler
         if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             if (Vector3.Distance(t.position, v) < d)
+            {
                 t.gameObject.GetComponent<Renderer>().material.color = c;
+                t.gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+                t.gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", c * player.ColorEmissionIntensity);
+            }
         }
         foreach (Transform child in t)
         {
@@ -289,7 +307,11 @@ public class ModelsHandler
         if (t.name.Contains("LU") || t.name.Contains("LD") || t.name.Contains("LED"))
         {
             if (Math.Abs(t.position.x - x) < 10)
+            {
                 t.gameObject.GetComponent<Renderer>().material.color = c;
+                t.gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+                t.gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", c * player.ColorEmissionIntensity);
+            }
         }
         foreach (Transform child in t)
         {

@@ -42,6 +42,7 @@ public class Player : MonoBehaviour
     private int countLEDs = 0;
     private int countPI4csv = 0;
     private int countPI4Label = 0;
+    public float ColorEmissionIntensity;
 
     private Dictionary<int, Transform> acrylicPlates = new Dictionary<int, Transform>();
     private Dictionary<int, Transform> PIs = new Dictionary<int, Transform>();
@@ -65,6 +66,7 @@ public class Player : MonoBehaviour
         cameraQReset = mainCamera.transform.rotation;
 
         ResetCamera();
+        this.ColorEmissionIntensity = 1f;
 
         maxValue = new Vector3(-9999, -9999, -9999);
         minValue = new Vector3(9999, 9999, 9999);
@@ -588,7 +590,10 @@ public class Player : MonoBehaviour
 
                 if (distance < 70)
                 {
-                    t.gameObject.GetComponent<Renderer>().material.color = new ColorHSV((kvp.Value.id+1)*(360/Boids.Count), 1 - (distance/70), 1).ToColor();
+                    Color c = new ColorHSV((kvp.Value.id+1)*(360/Boids.Count), 1 - (distance/70), 1).ToColor();
+                    t.gameObject.GetComponent<Renderer>().material.color = c;
+                    t.gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+                    t.gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", c * this.ColorEmissionIntensity);
                     hasChanged = true;
                 }
                 else
@@ -596,6 +601,8 @@ public class Player : MonoBehaviour
                     if (!hasChanged)
                     {
                         t.gameObject.GetComponent<Renderer>().material.color = defaultColor;
+                        t.gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+                        t.gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", defaultColor * this.ColorEmissionIntensity);
                     }
                 }
             }
@@ -641,8 +648,11 @@ public class Player : MonoBehaviour
 
                 try
                 {
-                    CasulaObject.Find(nameSet[0]).Find(nameSet[1]).Find(nameSet[2]).
-                        GetComponent<Renderer>().material.color = new Color(rgbFloat[0] / 255, rgbFloat[1] / 255, rgbFloat[2] / 255);
+                    Transform t = CasulaObject.Find(nameSet[0]).Find(nameSet[1]).Find(nameSet[2]);
+                    Color c = new Color(rgbFloat[0] / 255, rgbFloat[1] / 255, rgbFloat[2] / 255);
+                    t.gameObject.GetComponent<Renderer>().material.color = c;
+                    t.gameObject.GetComponent<Renderer>().material.EnableKeyword("_EMISSION");
+                    t.gameObject.GetComponent<Renderer>().material.SetColor("_EmissionColor", c * this.ColorEmissionIntensity);
                 }
                 catch (NullReferenceException)
                 {
