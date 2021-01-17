@@ -12,12 +12,14 @@ public class Player : MonoBehaviour
     public Transform IronMesh;
     public Transform WireSample;
     public TMPro.TextMeshPro TextSample;
+    public Transform Canvas;
     public OSC osc;
 
     private bool WiresVisible;
     private bool SpeakersVisible;
     private bool UnitsVisible;
     private bool LEDsVisible;
+    private bool MenuVisible;
 
     private Mouse mouse = Mouse.current;
     private Vector3 previousPosition;
@@ -59,6 +61,7 @@ public class Player : MonoBehaviour
         SpeakersVisible = true;
         UnitsVisible = true;
         LEDsVisible = true;
+        MenuVisible = true;
         distanceToTarget = 700;
         scale = 5f;
         speed = 50.0f;
@@ -101,6 +104,7 @@ public class Player : MonoBehaviour
         DisableWires();
         DisableSpeakers();
         DisableTexts();
+        HideShowMenu();
     }
 
     private void ComputeObjectPosition(GameObject g)
@@ -291,6 +295,20 @@ public class Player : MonoBehaviour
             HideObjectByName(child, names, visibility);
         }
 
+    }
+
+    public void HideShowMenu()
+    {
+        Transform menuGroup = Canvas.Find("Panel").Find("MenuGroup");
+        if (MenuVisible)
+        {
+            menuGroup.gameObject.SetActive(false);
+        }
+        else
+        {
+            menuGroup.gameObject.SetActive(true);
+        }
+        MenuVisible = !MenuVisible;
     }
 
     public void OnDisableWires(InputValue value)
